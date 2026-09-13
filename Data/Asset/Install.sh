@@ -1,42 +1,42 @@
 #!/bin/bash
-
-# WebBUGanalyst Installer
-# One-liner: curl -fsSL https://raw.githubusercontent.com/ftn-cyber/WebBUGanalyst/main/install-webbug.sh | bash
-#             or wget -qO- https://raw.githubusercontent.com/ftn-cyber/WebBUGanalyst/main/install-webbug.sh | bash
+# WebBUGanalyst Installer — Fixed for interactive input
+# Supports: curl | sh → will auto-fallback to local exec if needed
 
 set -e
 
-PYTHON_URL="https://raw.githubusercontent.com/ftn-cyber/WebBUGanalyst/refs/heads/main/Data/Asset/Python%20file/WebBUGanalyst.py"
-TEMP_SCRIPT="/tmp/WebBUGanalyst.py"
+URL_PY="https://raw.githubusercontent.com/ftn-cyber/WebBUGanalyst/refs/heads/main/Data/Asset/Python%20file/WebBUGanalyst.py"
+TMP="/tmp/WebBUGanalyst.py"
 
-echo "[*] Mengunduh WebBUGanalyst dari GitHub..."
+echo "[*] WebBUGanalyst v1.0 — Bug Bounty Helper"
+echo "[*] Mengunduh skrip..."
 
-# Unduh file Python
+# Unduh
 if command -v curl >/dev/null 2>&1; then
-    curl -sSfL "$PYTHON_URL" -o "$TEMP_SCRIPT"
+    curl -sSfL "$URL_PY" -o "$TMP" || { echo "[-] curl gagal"; exit 1; }
 elif command -v wget >/dev/null 2>&1; then
-    wget -q --no-check-certificate "$PYTHON_URL" -O "$TEMP_SCRIPT"
+    wget -q "$URL_PY" -O "$TMP" || { echo "[-] wget gagal"; exit 1; }
 else
-    echo "[-] Diperlukan curl atau wget untuk mengunduh."
+    echo "[-] curl/wget tidak tersedia"
     exit 1
 fi
 
-# Verifikasi file berhasil diunduh
-if [ ! -s "$TEMP_SCRIPT" ]; then
-    echo "[-] Gagal mengunduh file Python. Periksa koneksi atau URL."
-    rm -f "$TEMP_SCRIPT"
-    exit 1
-fi
+[ -s "$TMP" ] || { echo "[-] File kosong/tidak ditemukan"; rm -f "$TMP"; exit 1; }
 
-echo "[+] File berhasil diunduh. Menjalankan..."
-
-# Jalankan dengan python3 (prioritas) atau python
-if command -v python3 >/dev/null 2>&1; then
-    exec python3 "$TEMP_SCRIPT"
-elif command -v python >/dev/null 2>&1; then
-    exec python "$TEMP_SCRIPT"
+# Coba jalankan di TTY nyata
+if [ -t 0 ] || command -v script >/dev/null 2>&1; then
+    # Jika di terminal langsung atau script tersedia
+    if command -v script >/dev/null 2>&1; then
+        script -qec "python3 '$TMP' 2>/dev/null || python '$TMP'" /dev/null
+    else
+        python3 "$TMP" 2>/dev/null || python "$TMP"
+    fi
 else
-    echo "[-] Python tidak ditemukan. Instal python3 terlebih dahulu."
-    rm -f "$TEMP_SCRIPT"
+    # Jika di pipe (curl | bash), beri petunjuk
+    echo ""
+    echo "[!] Jalankan secara lokal untuk interaksi:"
+    echo "    curl -fsSL $0 > install.sh && chmod +x install.sh && ./install.sh"
+    rm -f "$TMP"
     exit 1
 fi
+
+rm -f "$TMP" 2>/dev/null
