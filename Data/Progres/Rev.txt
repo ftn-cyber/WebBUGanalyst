@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import os
+import sys
+import tempfile
+import urllib.request
+import subprocess
+
+GITHUB_SH_URL = "https://raw.githubusercontent.com/ftn-cyber/WebBUGanalyst/refs/heads/main/Data/Request.sh"
+
+def main():
+    print(f"[+] Mengunduh skrip shell dari: {GITHUB_SH_URL}")
+    
+    # Buat file sementara
+    with tempfile.NamedTemporaryFile(mode='w+b', suffix='.sh', delete=False) as tmp_file:
+        tmp_path = tmp_file.name
+        
+        try:
+            # Unduh konten
+            with urllib.request.urlopen(GITHUB_SH_URL) as response:
+                tmp_file.write(response.read())
+            
+            print(f"[+] Skrip tersimpan di: {tmp_path}")
+            
+            # Beri izin eksekusi (chmod +x)
+            os.chmod(tmp_path, 0o755)
+            
+            # Jalankan skrip shell
+            print("[+] Menjalankan skrip...")
+            result = subprocess.run([tmp_path], capture_output=True, text=True)
+            
+            # Tampilkan output
+            if result.stdout:
+                print("[STDOUT]:\n", result.stdout)
+            if result.stderr:
+                print("[STDERR]:\n", result.stderr)
+                
+            print(f"[+] Eksekusi selesai (Kode keluar: {result.returncode})")
+            
+        except Exception as e:
+            print(f"[-] Error: {e}", file=sys.stderr)
+        finally:
+            # Hapus file sementara
+            try:
+                os.unlink(tmp_path)
+                print(f"[+] File sementara dihapus: {tmp_path}")
+            except OSError:
+                pass
+
+if __name__ == "__main__":
+    main()
